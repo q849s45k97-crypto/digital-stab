@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>スタフ帳</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="スタフ帳">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#1b5e20">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-180.png">
+<style>
+:root{
+  --bg:#eef1f3; --card:#ffffff; --ink:#16212b; --sub:#5d6b77; --line:#c9d1d8;
+  --band:#1f3a4d; --band-ink:#ffffff; --note:#fff3c4; --note-ink:#5a4600;
+  --next:#ffd23f; --next-ink:#1a1400; --accent:#0b6fa4; --danger:#b3261e;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1419; --card:#16202a; --ink:#e8eef2; --sub:#93a1ac; --line:#2c3a46;
+    --band:#2b4b61; --band-ink:#f2f7fa; --note:#3a3210; --note-ink:#f4e3a0;
+    --next:#ffc400; --next-ink:#1a1400; --accent:#5cb6e8; --danger:#ff8a80;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1419; --card:#16202a; --ink:#e8eef2; --sub:#93a1ac; --line:#2c3a46;
+  --band:#2b4b61; --band-ink:#f2f7fa; --note:#3a3210; --note-ink:#f4e3a0;
+  --next:#ffc400; --next-ink:#1a1400; --accent:#5cb6e8; --danger:#ff8a80;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"BIZ UDPGothic","Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",Meiryo,sans-serif;
+  font-size:16px;line-height:1.5;-webkit-text-size-adjust:100%}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--line);background:var(--card);border-radius:8px;padding:8px 12px;min-height:40px}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--accent);outline-offset:1px}
+button.pri{background:var(--accent);color:#fff;border-color:transparent;font-weight:700}
+button.dng{color:var(--danger);border-color:var(--danger)}
+button.arm{background:var(--danger);color:#fff}
+input,select,textarea{width:100%;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:8px;min-height:40px}
+textarea{min-height:160px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px}
+.wrap{max-width:720px;margin:0 auto;padding:12px}
+.bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.bar h1{font-size:20px;margin:0;flex:1;min-width:0}
+.spacer{flex:1}
+
+/* list */
+.item{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--band);border-radius:6px;padding:12px;margin-bottom:10px}
+.item h2{font-size:18px;margin:0 0 2px}
+.item .m{color:var(--sub);font-size:14px;margin-bottom:8px}
+.item .btns{display:flex;gap:6px;flex-wrap:wrap}
+.item .btns .open{flex:1 1 100%;font-size:17px;min-height:46px}
+.empty{padding:28px 12px;text-align:center;color:var(--sub)}
+
+/* view */
+.vhead{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding:8px 0;border-bottom:1px solid var(--line)}
+.vtitle{display:flex;align-items:center;gap:10px}
+.vtitle h1{font-size:16px;margin:0;flex:1;min-width:0}
+.clock{font-variant-numeric:tabular-nums;font-size:clamp(28px,9vw,42px);font-weight:800;line-height:1;letter-spacing:.01em}
+.tools{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.tools button{padding:4px 10px;min-height:36px;font-size:14px}
+.tools button.on{background:var(--accent);color:#fff;border-color:transparent}
+.staff{margin-top:10px;background:var(--card);border:2px solid var(--ink);border-radius:4px;overflow:hidden;font-size:calc(17px * var(--fs,1))}
+.hdr,.row{display:grid;grid-template-columns:minmax(0,1fr) 5.2em 5.2em 3em}
+.hdr{background:var(--ink);color:var(--bg);font-size:.78em;text-align:center;padding:3px 0}
+.hdr div:first-child{text-align:left;padding-left:8px}
+.row{border-top:1px solid var(--line);align-items:stretch}
+.row>div{padding:6px 4px;border-left:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums;font-weight:600;letter-spacing:.01em}
+.row>div:first-child{border-left:0;justify-content:flex-start;padding-left:8px;flex-direction:column;align-items:flex-start;gap:0}
+.row .nm{font-size:1.12em;font-weight:700;line-height:1.3}
+.row .mm{font-size:.74em;color:var(--sub);font-weight:500;line-height:1.3}
+.row .tm.pass{color:var(--ink);font-weight:700}
+.st.mark .tm.pass{color:inherit}
+.train{background:var(--band);color:var(--band-ink);padding:6px 8px;font-weight:700;border-top:1px solid var(--line)}
+.train small{font-weight:500;opacity:.85;margin-left:6px}
+.noterow{background:var(--note);color:var(--note-ink);padding:6px 8px;font-size:.88em;border-top:1px solid var(--line)}
+.past{opacity:.45}
+.next{background:var(--next);color:var(--next-ink)}
+.next .mm{color:var(--next-ink)}
+.next>div{border-color:rgba(0,0,0,.25)}
+.badge{display:inline-block;background:var(--next-ink);color:var(--next);font-size:.62em;font-weight:700;padding:0 6px;border-radius:3px;margin-left:6px;vertical-align:middle}
+
+/* staff card: printed-paper look */
+.staff{border:3px double var(--ink);border-radius:0;background:var(--card)}
+.hdr,.row{grid-template-columns:3.4em minmax(0,1fr) 4.7em 4.7em 2.5em}
+.hdr{background:var(--card);color:var(--ink);border-bottom:2px solid var(--ink);font-weight:700;padding:0;font-size:1em}
+.hdr div{padding:3px 2px;text-align:center;border-left:1px solid var(--ink);font-size:.8em}
+.hdr div:first-child{border-left:0;text-align:center;padding-left:0}
+.row{border-top:0}
+.st{border-top:1px solid var(--ink)}
+.row>div{border-left:1px solid var(--ink)}
+.row>div:first-child{border-left:0;justify-content:center;padding:6px 2px;flex-direction:row;align-items:center;font-size:.72em;color:var(--sub);font-weight:500}
+.row>div.nmc{justify-content:flex-start;padding-left:6px}
+.row.stop .nm{font-weight:800;font-size:1.2em}
+.row.pas .nm{font-weight:500;font-size:.98em}
+.t{white-space:nowrap}
+.t .h{font-size:.9em}
+.t .c{font-size:.9em;margin:0 1px}
+.t .m{font-size:1.2em;font-weight:800}
+.t .s{font-size:.6em;vertical-align:sub;margin-left:2px}
+.tm.pass{font-size:.8em}
+.memo{display:grid;grid-template-columns:3.4em minmax(0,1fr) 4.7em 4.7em 2.5em;border-top:1px dotted var(--ink)}
+.memo>div{border-left:1px solid var(--ink);padding:2px 6px 4px}
+.memo>div:first-child{border-left:0}
+.memo .mt{font-size:.8em;font-weight:600}
+.st.next{background:var(--next);color:var(--next-ink)}
+.st{cursor:pointer;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+.st.mark{background:var(--mark,var(--next));color:var(--mark-ink,var(--next-ink));box-shadow:inset 6px 0 0 var(--ink)}
+.st.mark .row>div:first-child{color:var(--mark-ink,var(--next-ink))}
+.st.mark.ps{background:var(--markp,#74c0fc);color:var(--markp-ink,#1a1400)}
+.st.mark.ps .row>div:first-child{color:var(--markp-ink,#1a1400)}
+.st.next .row>div:first-child{color:var(--next-ink)}
+.train{background:#1b5e20;color:#fff;display:flex;align-items:center;gap:8px;border-top:2px solid var(--ink);padding:4px 8px}
+.train .no{font-size:1.3em;font-weight:800;border:2px solid currentColor;padding:0 8px;line-height:1.3}
+.noterow{border-top:1px solid var(--ink)}
+.grid2 .span2{grid-column:span 2}
+.nextbtn{display:block;width:100%;margin:14px 0 24px;min-height:56px;font-size:18px}
+button.nextbtn{background:#1b5e20;color:#fff;border-color:transparent}
+.train{border-bottom:2px solid var(--ink)}
+.pg{align-self:center;font-size:14px;color:var(--sub);margin:0 4px}
+.swgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sw{min-height:52px;font-weight:700;border:2px solid var(--line)}
+.sw.sel{border:3px solid var(--ink)}
+@media print{.vhead,.toast{display:none}body{background:#fff}.wrap{padding:0}.past{opacity:1}}
+
+/* edit */
+.field{margin-bottom:10px}
+.field label{display:block;font-size:13px;color:var(--sub);margin-bottom:2px}
+.rc{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:8px;margin-bottom:8px}
+.rc.k-train{border-left:6px solid var(--band)}
+.rc.k-note{border-left:6px solid #d9a400}
+.rc.k-sta{border-left:6px solid var(--accent)}
+.rh{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.rh .tag{font-weight:700;font-size:14px;flex:1}
+.rh button{padding:2px 10px;min-height:34px}
+.grid2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.grid2 .full{grid-column:1 / -1}
+.addbar{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.addbar button{flex:1}
+details{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:8px;margin:12px 0}
+summary{cursor:pointer;font-weight:700}
+.hint{font-size:13px;color:var(--sub);margin:6px 0}
+.hint code{background:var(--bg);padding:0 4px;border-radius:3px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:20px;font-size:14px;z-index:20}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script>
+(function(){
+const KEY='staff-app-v1';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const uid=()=>Math.random().toString(36).slice(2,9);
+
+const SAMPLE={staffs:[{id:uid(),name:'A01行路（サンプル）',note:'架空の路線です。編集して自分のスタフに書き換えてください。',
+ rows:[
+  {k:'train',no:'1201',type:'普通',dest:'甲駅→丁駅'},
+  {k:'sta',name:'甲駅',arr:'',dep:'06:10',trk:'1',memo:'出区後、入換え',km:'0.0'},
+  {k:'sta',name:'乙駅',arr:'06:18:30',dep:'06:19',trk:'2',memo:'',km:'5.4'},
+  {k:'sta',name:'丙信号場',arr:'通過',dep:'06:24',trk:'',memo:'速度制限 45km/h',km:'9.8'},
+  {k:'sta',name:'丁駅',arr:'06:31',dep:'',trk:'3',memo:'',km:'14.2'},
+  {k:'note',text:'折返し 6分　乗務員交替なし'},
+  {k:'train',no:'1202',type:'普通',dest:'丁駅→甲駅'},
+  {k:'sta',name:'丁駅',arr:'',dep:'06:37',trk:'3',memo:''},
+  {k:'sta',name:'丙信号場',arr:'通過',dep:'06:44',trk:'',memo:''},
+  {k:'sta',name:'乙駅',arr:'06:49',dep:'06:50',trk:'1',memo:'後続列車 待合せ'},
+  {k:'sta',name:'甲駅',arr:'06:58',dep:'',trk:'1',memo:'入区'}
+ ]}],fs:1};
+
+let data=load()||SAMPLE;
+if(!Array.isArray(data.types))data.types=['普通','快速','急行','特急','回送','試運転'];
+let mode='list', cur=null, arm=null, live=true, timer=null, toastT=null;
+applyMark();
+
+function load(){try{const r=localStorage.getItem(KEY);if(r){const d=JSON.parse(r);if(d&&Array.isArray(d.staffs))return d;}}catch(e){}return null;}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(data));}catch(e){}}
+function toast(t){clearTimeout(toastT);document.querySelectorAll('.toast').forEach(e=>e.remove());const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.appendChild(d);toastT=setTimeout(()=>d.remove(),1800);}
+function getStaff(){return data.staffs.find(s=>s.id===cur);}
+function sec(t){const m=/(\d{1,2}):(\d{2})(?::(\d{2}))?/.exec(t||'');return m?(+m[1]*3600+ +m[2]*60+(+m[3]||0)):null;}
+
+/* ---------- list ---------- */
+function renderList(){
+  const items=data.staffs.map(s=>{
+    const n=s.rows.filter(r=>r.k==='sta').length, tn=s.rows.filter(r=>r.k==='train').length;
+    return `<div class="item"><h2>${esc(s.name||'名称未設定')}</h2>
+      <div class="m">${tn}列車・${n}駅${s.note?'　'+esc(s.note):''}</div>
+      <div class="btns">
+        <button class="pri open" data-act="open" data-id="${s.id}">スタフを開く</button>
+        <button data-act="edit" data-id="${s.id}">編集</button>
+        <button data-act="dup" data-id="${s.id}">複製</button>
+        <button class="dng ${arm===s.id?'arm':''}" data-act="del" data-id="${s.id}">${arm===s.id?'もう一度タップで削除':'削除'}</button>
+      </div></div>`}).join('');
+  $('#app').innerHTML=`<div class="bar"><h1>スタフ帳</h1><button class="pri" data-act="new">新しいスタフ</button></div>
+   <div class="bar"><button data-act="types">種別を編集</button><button data-act="color">タップ色を変更</button></div>
+   <div class="bar"><button data-act="fexp">全データをファイルに保存</button><button data-act="fimp">ファイルを読み込む</button></div>
+   <input type="file" id="fin" accept=".json,.txt,application/json,text/plain" hidden>
+   ${items||'<div class="empty">スタフがありません。「新しいスタフ」から作成します。</div>'}
+   <div class="hint">データはこの端末のブラウザ内に保存されます。端末を変える場合や控えを取りたい場合は、「全データをファイルに保存」で書き出し、新しい端末で「ファイルを読み込む」から取り込んでください。</div>`;
+}
+
+/* ---------- view ---------- */
+function fmt(v){
+  const m=/^\s*(\d{1,2}):(\d{2})(?::(\d{2}))?\s*$/.exec(v||'');
+  if(!m) return esc(v);
+  return `<span class="t"><span class="h">${+m[1]}</span><span class="c">:</span><span class="m">${m[2]}</span>${m[3]&&m[3]!=='00'?`<span class="s">${m[3]}</span>`:''}</span>`;
+}
+function renderView(){
+  const s=getStaff(); if(!s){mode='list';render();return;}
+  let h='';const hd='<div class="hdr"><div>キロ程</div><div>駅名</div><div>着</div><div>発</div><div>番線</div></div>';const mk=(data.marks||{})[s.id];
+  const segs=[];s.rows.forEach((r,i)=>{if(r.k==='train'||!segs.length)segs.push([]);segs[segs.length-1].push(i);});
+  data.pg=data.pg||{};
+  const pg=Math.max(0,Math.min(data.pg[s.id]||0,segs.length-1));
+  const nx=segs[pg+1]?s.rows[segs[pg+1][0]]:null;
+  const nlabel=nx?((nx.no||'')+(nx.type?(nx.no?' ':'')+nx.type:'')||'次の列車'):'';
+  const nb=nx?`<button class="pri nextbtn" data-act="nexttrain">${esc(nlabel)}の時刻表へ</button>`:'';
+  (segs[pg]||[]).forEach(i=>{
+    const r=s.rows[i];
+    if(r.k==='train'){
+      h+=`<div class="train"><span class="no">${esc(r.no)}</span>${r.type?`<span>${esc(r.type)}</span>`:''}<small>${esc(r.dest)}</small></div>${hd}`;
+    }else if(r.k==='note'){
+      h+=`<div class="noterow">${esc(r.text)}</div>`;
+    }else{
+      const t=sec(r.dep)!=null?sec(r.dep):sec(r.arr);
+      const pas=/通過|レ|↓/.test(r.arr||'');
+      const stop=!pas&&(/\d/.test(r.arr||'')||/\d/.test(r.dep||''));
+      const cls=(v)=>/\d/.test(v||'')?'tm':'tm pass';
+      h+=`<div class="st${pas?' ps':''}${mk===i?' mark':''}" data-ri="${i}" data-t="${t==null?'':t}"><div class="row ${stop?'stop':'pas'}">
+        <div>${esc(r.km)}</div>
+        <div class="nmc"><span class="nm">${esc(r.name)}<span class="badge" hidden>次</span></span></div>
+        <div class="${cls(r.arr)}">${fmt(r.arr)}</div><div class="${cls(r.dep)}">${fmt(r.dep)}</div><div>${esc(r.trk)}</div></div>${r.memo?`<div class="memo"><div></div><div class="mt">${esc(r.memo)}</div><div></div><div></div><div></div></div>`:''}</div>`;
+    }
+  });
+  $('#app').innerHTML=`<div class="vhead">
+    <div class="vtitle"><h1>${esc(s.name)}</h1><span class="clock" id="clk">--:--:--</span></div>
+    <div class="tools">
+      <button data-act="back">一覧</button>
+      ${pg>0?'<button data-act="prevtrain">前の列車</button>':''}<span class="pg">${segs.length?pg+1:0}/${segs.length}</span>
+      <button data-act="edit" data-id="${s.id}">編集</button>
+      <button data-act="fsm">A−</button><button data-act="fsp">A＋</button>
+      
+      <button data-act="theme">明暗</button>
+    </div></div>
+    <div class="staff" style="--fs:${data.fs||1}">
+      ${segs[pg]&&s.rows[segs[pg][0]].k!=='train'?hd:''}${h||'<div class="noterow">行がありません。編集から追加してください。</div>'}
+    </div>${nb}`;
+  tick(true);
+}
+function tick(scroll){
+  const clk=$('#clk'); if(!clk) return;
+  const d=new Date(), now=d.getHours()*3600+d.getMinutes()*60+d.getSeconds();
+  const p=n=>String(n).padStart(2,'0');
+  clk.textContent=`${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+  const rows=[...document.querySelectorAll('.st[data-t]')];
+  let nextEl=null;
+  
+  rows.forEach(r=>{
+    const t=r.dataset.t, isNext=r===nextEl;
+    r.classList.toggle('next',isNext);
+    
+    const b=r.querySelector('.badge'); if(b) b.hidden=!isNext;
+  });
+  
+}
+
+/* ---------- file save / load ---------- */
+let dl=null;
+try{if(window.claude&&window.claude.use){window.claude.use('downloads').then(x=>{dl=x;},()=>{});}}catch(e){}
+const ymd=()=>{const d=new Date(),p=n=>String(n).padStart(2,'0');return d.getFullYear()+p(d.getMonth()+1)+p(d.getDate());};
+const safe=n=>String(n||'スタフ').replace(/[\\\/:*?"<>|]/g,'_').trim()||'スタフ';
+async function saveFile(name,obj){
+  const text=JSON.stringify(obj,null,2);
+  if(dl){
+    try{await dl.save({filename:name,data:text});toast('ファイルを保存しました');}
+    catch(e){if(e&&e.code==='declined')return;toast('保存できませんでした');}
+    return;
+  }
+  try{
+    const file=new File([text],name,{type:'application/json'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      await navigator.share({files:[file],title:name});
+      toast('ファイルを保存しました');return;
+    }
+  }catch(e){if(e&&e.name==='AbortError')return;}
+  try{
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([text],{type:'application/json'}));
+    a.download=name;document.body.appendChild(a);a.click();
+    setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);
+    toast('ファイルを保存しました');
+  }catch(e){toast('保存できませんでした');}
+}
+function importText(text,fname){
+  let obj=null;try{obj=JSON.parse(text);}catch(e){}
+  let added=0;
+  const okRow=r=>r&&typeof r==='object'&&['sta','train','note'].includes(r.k);
+  if(obj&&Array.isArray(obj.staffs)){
+    obj.staffs.forEach(st=>{if(st&&Array.isArray(st.rows)){data.staffs.push({id:uid(),name:String(st.name||'名称未設定'),note:String(st.note||''),rows:st.rows.filter(okRow)});added++;}});
+    if(Array.isArray(obj.types))obj.types.forEach(t=>{if(typeof t==='string'&&t&&!data.types.includes(t))data.types.push(t);});
+    ['markColor','markColorP'].forEach(k=>{if(/^#[0-9a-f]{6}$/i.test(obj[k]||''))data[k]=obj[k];});
+    applyMark();
+  }else if(obj===null){
+    const rows=fromText(text);
+    if(rows.length){data.staffs.push({id:uid(),name:(fname||'読み込み').replace(/\.[^.]*$/,''),note:'',rows});added=1;}
+  }
+  if(!added){toast('読み込めるデータがありませんでした');return;}
+  save();mode='list';render();toast(added+'件のスタフを読み込みました');
+}
+
+/* ---------- mark color ---------- */
+const MARKC=[['黄','#ffd23f'],['橙','#ff9f43'],['緑','#8ce99a'],['水色','#74c0fc'],['ピンク','#ffa8c5'],['紫','#d0bfff']];
+function inkFor(h){const m=/^#?([0-9a-f]{6})$/i.exec(h||'');if(!m)return '';const n=parseInt(m[1],16),r=n>>16&255,g=n>>8&255,b=n&255;return (0.299*r+0.587*g+0.114*b)>150?'#1a1400':'#ffffff';}
+function applyMark(){const st=document.documentElement.style;[['markColor','--mark','--mark-ink'],['markColorP','--markp','--markp-ink']].forEach(([k,a,b])=>{const c=data[k];if(c){st.setProperty(a,c);st.setProperty(b,inkFor(c));}else{st.removeProperty(a);st.removeProperty(b);}});}
+function colorBlock(title,k,def){
+  const c=data[k]||'';
+  const sw=MARKC.map(([n,v])=>`<button class="sw${c===v?' sel':''}" data-act="cset" data-k="${k}" data-c="${v}" style="background:${v};color:${inkFor(v)}">${n}</button>`).join('');
+  return `<h2 style="font-size:17px;margin:16px 0 6px">${title}</h2>
+   <div class="swgrid">${sw}</div>
+   <div class="field" style="margin-top:10px"><label>好きな色を選ぶ</label><input type="color" data-k="${k}" value="${c||def}" style="height:48px;padding:2px"></div>
+   <div class="addbar"><button data-act="creset" data-k="${k}">標準の色に戻す</button></div>`;
+}
+function renderColor(){
+  const sample=(cls,nm,a,d)=>`<div class="st mark${cls}"><div class="row ${cls?'pas':'stop'}"><div>5.4</div><div class="nmc"><span class="nm">${nm}</span></div><div class="tm${cls?' pass':''}">${cls?'通過':fmt(a)}</div><div class="tm">${fmt(d)}</div><div>${cls?'':'2'}</div></div></div>`;
+  $('#app').innerHTML=`<div class="bar"><h1>タップ色の変更</h1><button class="pri" data-act="back">完了</button></div>
+   <div class="hint">スタフで駅の行をタップしたときに付く色です。停車駅と通過駅で別の色にできます。</div>
+   ${colorBlock('停車駅の色','markColor','#ffd23f')}
+   ${colorBlock('通過駅の色','markColorP','#74c0fc')}
+   <div class="hint" style="margin-top:12px">見本</div>
+   <div class="staff" style="--fs:1">${sample('','乙駅','06:18','06:19')}${sample(' ps','丙信号場','','06:24')}</div>`;
+}
+
+/* ---------- types ---------- */
+function typeSel(r,i){
+  const list=data.types.filter(Boolean);
+  if(r.type&&!list.includes(r.type)) list.push(r.type);
+  return `<div><label>種別</label><select data-i="${i}" data-f="type"><option value=""></option>${list.map(t=>`<option value="${esc(t)}"${t===r.type?' selected':''}>${esc(t)}</option>`).join('')}</select></div>`;
+}
+function renderTypes(){
+  $('#app').innerHTML=`<div class="bar"><h1>種別の編集</h1><button class="pri" data-act="back">完了</button></div>
+   <div class="hint">列車の「種別」プルダウンに表示される項目です。名前を変えると、すでに使っている列車の種別も一緒に変わります。削除しても、すでに設定済みの列車の種別はそのまま残ります。</div>
+   ${data.types.map((t,i)=>`<div class="rc"><div class="rh"><input style="flex:1;min-width:0" data-ti="${i}" value="${esc(t)}" placeholder="例：普通"><button data-act="tup" data-ti="${i}" ${i===0?'disabled':''}>↑</button><button data-act="tdn" data-ti="${i}" ${i===data.types.length-1?'disabled':''}>↓</button><button class="dng" data-act="tdel" data-ti="${i}">✕</button></div></div>`).join('')}
+   <div class="addbar"><button data-act="tadd">＋種別を追加</button></div>`;
+}
+
+/* ---------- edit ---------- */
+function rowEditor(r,i,n){
+  const pas=/通過|レ|↓/.test(r.arr||'');
+  const mv=`<button data-act="up" data-i="${i}" ${i===0?'disabled':''}>↑</button><button data-act="dn" data-i="${i}" ${i===n-1?'disabled':''}>↓</button><button class="dng" data-act="rdel" data-i="${i}">✕</button>`;
+  const inp=(f,label,ph,cls)=>`<div class="${cls||''}"><label>${label}</label><input data-i="${i}" data-f="${f}" value="${esc(r[f])}" placeholder="${ph||''}"></div>`;
+  if(r.k==='train') return `<div class="rc k-train"><div class="rh"><span class="tag">列車</span>${mv}</div>
+    <div class="grid2">${inp('no','列車番号','1201')}${typeSel(r,i)}${inp('dest','区間・行先','甲駅→丁駅','full')}</div></div>`;
+  if(r.k==='note') return `<div class="rc k-note"><div class="rh"><span class="tag">注記</span>${mv}</div>${inp('text','内容','折返し 6分')}</div>`;
+  return `<div class="rc k-sta"><div class="rh"><span class="tag">駅</span><button data-act="pass" data-i="${i}" class="${pas?'pri':''}">通過${pas?' ✓':''}</button>${mv}</div>
+    <div class="grid2">${inp('name','駅名','乙駅','full')}${inp('arr','着','06:18')}${inp('dep','発','06:19')}${inp('trk','番線','2')}${inp('km','キロ程','12.3')}${inp('memo','備考（制限速度など）','速度制限 45km/h','span2')}</div></div>`;
+}
+function renderEdit(){
+  const s=getStaff(); if(!s){mode='list';render();return;}
+  $('#app').innerHTML=`<div class="bar"><h1>スタフを編集</h1><button data-act="back">一覧</button><button class="pri" data-act="open" data-id="${s.id}">スタフを開く</button></div>
+   <div class="field"><label>スタフ名（行路番号など）</label><input data-s="name" value="${esc(s.name)}"></div>
+   <div class="field"><label>メモ</label><input data-s="note" value="${esc(s.note)}"></div>
+   <div id="rows">${s.rows.map((r,i)=>rowEditor(r,i,s.rows.length)).join('')}</div>
+   <div class="addbar"><button data-act="addsta">＋駅</button><button data-act="addtrain">＋列車</button><button data-act="addnote">＋注記</button></div>
+   <div class="addbar"><button data-act="fexp1">このスタフをファイルに保存</button></div>
+   <details><summary>テキスト入出力（まとめて入力・バックアップ）</summary>
+     <div class="hint">1行1項目。<code>#</code>で列車（<code>#1201,普通,甲駅→丁駅</code>）、<code>!</code>で注記、それ以外は駅（<code>駅名,着,発,番線,備考,キロ程</code>）。カンマ・タブ区切りに対応。</div>
+     <textarea id="bulk" spellcheck="false"></textarea>
+     <div class="addbar"><button data-act="export">いまの内容をテキスト化</button><button class="pri" data-act="import">テキストで置き換え</button></div>
+   </details>
+   <div class="hint">入力内容は自動で保存されます。</div>`;
+}
+function toText(s){
+  return s.rows.map(r=>r.k==='train'?`#${r.no},${r.type||''},${r.dest||''}`:r.k==='note'?`!${r.text||''}`:[r.name,r.arr,r.dep,r.trk,r.memo,r.km].map(v=>v||'').join(',')).join('\n');
+}
+function fromText(t){
+  const rows=[];
+  t.split(/\r?\n/).forEach(line=>{
+    if(!line.trim()) return;
+    if(line[0]==='#'){const a=line.slice(1).split(/[,\t，、]/).map(x=>x.trim());rows.push({k:'train',no:a[0]||'',type:a[1]||'',dest:a[2]||''});}
+    else if(line[0]==='!'||line[0]==='！'){rows.push({k:'note',text:line.slice(1).trim()});}
+    else{const a=line.split(/[,\t，]/).map(x=>x.trim());rows.push({k:'sta',name:a[0]||'',arr:a[1]||'',dep:a[2]||'',trk:a[3]||'',memo:a[4]||'',km:a[5]||''});}
+  });
+  return rows;
+}
+
+/* ---------- main ---------- */
+function render(){
+  clearInterval(timer);
+  if(mode==='list')renderList();else if(mode==='types')renderTypes();else if(mode==='color')renderColor();
+  else if(mode==='view'){renderView();timer=setInterval(()=>tick(false),1000);}
+  else renderEdit();
+  window.scrollTo(0,0);
+}
+const blank=()=>({id:uid(),name:'新しいスタフ',note:'',rows:[{k:'train',no:'',type:'',dest:''},{k:'sta',name:'',arr:'',dep:'',trk:'',memo:''}]});
+
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button[data-act]'); if(!b) return;
+  const a=b.dataset.act, id=b.dataset.id, i=+b.dataset.i;
+  const s=getStaff();
+  if(a==='new'){const n=blank();data.staffs.unshift(n);save();cur=n.id;mode='edit';render();}
+  else if(a==='open'){cur=id;mode='view';render();}
+  else if(a==='edit'){cur=id;mode='edit';if(data.marks)data.marks[id]=null;render();}
+  else if(a==='back'){mode='list';arm=null;data.types=data.types.filter(t=>t&&t.trim());save();render();}
+  else if(a==='dup'){const o=data.staffs.find(x=>x.id===id);const c=JSON.parse(JSON.stringify(o));c.id=uid();c.name=o.name+'（コピー）';data.staffs.splice(data.staffs.indexOf(o)+1,0,c);save();render();toast('複製しました');}
+  else if(a==='del'){if(arm===id){data.staffs=data.staffs.filter(x=>x.id!==id);arm=null;save();toast('削除しました');}else{arm=id;}render();}
+  else if(a==='fsm'){data.fs=Math.max(.7,+((data.fs||1)-.1).toFixed(2));save();renderView();}
+  else if(a==='fsp'){data.fs=Math.min(1.8,+((data.fs||1)+.1).toFixed(2));save();renderView();}
+  
+  else if(a==='theme'){const r=document.documentElement;const dark=r.dataset.theme?r.dataset.theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;r.dataset.theme=dark?'light':'dark';}
+  else if(a==='addsta'){s.rows.push({k:'sta',name:'',arr:'',dep:'',trk:'',memo:''});save();renderEdit();}
+  else if(a==='addtrain'){s.rows.push({k:'train',no:'',type:'',dest:''});save();renderEdit();}
+  else if(a==='addnote'){s.rows.push({k:'note',text:''});save();renderEdit();}
+  else if(a==='up'&&i>0){[s.rows[i-1],s.rows[i]]=[s.rows[i],s.rows[i-1]];save();renderEdit();}
+  else if(a==='dn'&&i<s.rows.length-1){[s.rows[i+1],s.rows[i]]=[s.rows[i],s.rows[i+1]];save();renderEdit();}
+  else if(a==='rdel'){s.rows.splice(i,1);save();renderEdit();}
+  else if(a==='pass'){const r=s.rows[i];r.arr=/通過|レ|↓/.test(r.arr||'')?'':'通過';save();renderEdit();}
+  else if(a==='nexttrain'){data.pg=data.pg||{};data.pg[cur]=(data.pg[cur]||0)+1;save();renderView();window.scrollTo(0,0);}
+  else if(a==='prevtrain'){data.pg=data.pg||{};data.pg[cur]=Math.max(0,(data.pg[cur]||0)-1);save();renderView();window.scrollTo(0,0);}
+  else if(a==='fexp'){saveFile('スタフ帳バックアップ_'+ymd()+'.json',{app:'staff-app',version:1,exported:new Date().toISOString(),staffs:data.staffs,types:data.types,markColor:data.markColor||null,markColorP:data.markColorP||null});}
+  else if(a==='fexp1'){saveFile('スタフ_'+safe(s.name)+'.json',{app:'staff-app',version:1,exported:new Date().toISOString(),staffs:[s]});}
+  else if(a==='fimp'){const f=$('#fin');if(f)f.click();}
+  else if(a==='color'){mode='color';render();}
+  else if(a==='cset'){data[b.dataset.k]=b.dataset.c;save();applyMark();renderColor();}
+  else if(a==='creset'){data[b.dataset.k]=null;save();applyMark();renderColor();}
+  else if(a==='types'){mode='types';render();}
+  else if(a==='tadd'){data.types.push('');save();renderTypes();const q=document.querySelectorAll('input[data-ti]');q[q.length-1].focus();}
+  else if(a==='tup'){const ti=+b.dataset.ti;if(ti>0){[data.types[ti-1],data.types[ti]]=[data.types[ti],data.types[ti-1]];save();renderTypes();}}
+  else if(a==='tdn'){const ti=+b.dataset.ti;if(ti<data.types.length-1){[data.types[ti+1],data.types[ti]]=[data.types[ti],data.types[ti+1]];save();renderTypes();}}
+  else if(a==='tdel'){data.types.splice(+b.dataset.ti,1);save();renderTypes();}
+  else if(a==='export'){$('#bulk').value=toText(s);toast('テキスト化しました。コピーして保存できます');}
+  else if(a==='import'){const rows=fromText($('#bulk').value);if(!rows.length){toast('テキストが空です');return;}s.rows=rows;save();renderEdit();toast('反映しました');}
+});
+document.addEventListener('click',e=>{
+  if(mode!=='view'||e.target.closest('button')) return;
+  const st=e.target.closest('.st'); if(!st) return;
+  const i=+st.dataset.ri; data.marks=data.marks||{};
+  const on=data.marks[cur]!==i;
+  data.marks[cur]=on?i:null; save();
+  document.querySelectorAll('.st.mark').forEach(x=>x.classList.remove('mark'));
+  if(on) st.classList.add('mark');
+});
+document.addEventListener('input',e=>{
+  if(mode==='color'&&e.target.dataset.k){const k=e.target.dataset.k;data[k]=e.target.value;save();applyMark();document.querySelectorAll('.sw[data-k="'+k+'"].sel').forEach(x=>x.classList.remove('sel'));}
+});
+document.addEventListener('change',e=>{
+  const fi=e.target; if(fi.id!=='fin'||!fi.files||!fi.files[0]) return;
+  const f=fi.files[0];
+  f.text().then(x=>importText(x,f.name),()=>toast('ファイルを読み込めませんでした'));
+  fi.value='';
+});
+document.addEventListener('change',e=>{
+  const t=e.target; if(mode!=='types'||t.dataset.ti==null) return;
+  const ti=+t.dataset.ti, old=data.types[ti], nw=t.value.trim();
+  if(!nw){t.value=old;return;}
+  if(old&&old!==nw) data.staffs.forEach(s=>s.rows.forEach(r=>{if(r.k==='train'&&r.type===old)r.type=nw;}));
+  data.types[ti]=nw;save();
+});
+document.addEventListener('input',e=>{
+  const t=e.target, s=getStaff(); if(!s||mode!=='edit') return;
+  if(t.dataset.s){s[t.dataset.s]=t.value;save();}
+  else if(t.dataset.f){s.rows[+t.dataset.i][t.dataset.f]=t.value;save();}
+});
+render();
+})();
+</script>
+<script>
+if('serviceWorker' in navigator&&location.protocol.indexOf('http')===0){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
+</script>
+</body>
+</html>
